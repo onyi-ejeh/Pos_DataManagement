@@ -1,132 +1,156 @@
 package UserInterface.ui;
 
 import se.systementor.DatabaseConnect.Database;
+import se.systementor.Services.OrderDAO;
+import se.systementor.Services.ProductDAO;
 import se.systementor.model.Item;
 
 import javax.swing.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
+import java.awt.*;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * CashRegisterGUI is a graphical user interface for managing a simple cash register system.
- * It allows users to add items to a cart, display the cart's contents, and generate a dynamic receipt.
- */
 public class CashRegisterGUI {
-    private JPanel panel1;
-    private JPanel panelRight;
-    private JPanel panelLeft;
+    private JFrame frame;
+    private JPanel categoryPanel;
+    private JPanel itemPanel;
     private JTextArea receiptArea;
-    private JPanel buttonsPanel;
-    private JTextField textField1;
-    private JTextField textField2;
-    private JButton addButton;
-    private JButton payButton;
+    private JButton checkoutButton;
+    private JButton statisticsButton;
+    private JTextField quantityField; // Replaces textField1
+    private BigDecimal totalAmount = BigDecimal.ZERO;
+    private BigDecimal totalVat = BigDecimal.ZERO;
+    private final Database database = new Database();
+    private final List<Item> cartItems = new ArrayList<>();
+    private final ProductDAO productDAO;
+    private final OrderDAO orderDAO;
 
-    private Database database = new Database();
-    private List<Item> cartItems = new ArrayList<>(); // List to hold items added to the cart
-
-    /**
-     * Constructor to initialize the CashRegisterGUI. It dynamically creates buttons for each active product
-     * from the database and sets up actions for adding items to the cart and generating receipts.
-     */
     public CashRegisterGUI() {
-        // Dynamically populate the buttons panel with active product buttons from the database
-        for (Item item : database.activeProducts()) {
-            JButton button = new JButton(item.getName() + " - " + item.getPrice());
-            button.addActionListener(new ActionListener() {
-                @Override
-                public void actionPerformed(ActionEvent e) {
-                    // Add the selected item to the cart and update the receipt area
-                    cartItems.add(item);
-                    receiptArea.append(item.getName() + " added to the cart\n");
-                }
-            });
-            buttonsPanel.add(button);
-        }
+        this.productDAO = new ProductDAO(database);
+        this.orderDAO = new OrderDAO(database);
 
-        // Action listener for the "Add Receipt" button to generate a static receipt (for example purposes)
-        addButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                receiptArea.append("                     STEFANS SUPERSHOP\n");
-                receiptArea.append("----------------------------------------------------\n");
-                receiptArea.append("\n");
-                receiptArea.append("Kvittonummer: 122        Datum: 2024-09-01 13:00:21\n");
-                receiptArea.append("----------------------------------------------------\n");
-                receiptArea.append("Kaffe Gevalia           5 *     51.00    =   255.00  \n");
-                receiptArea.append("Nallebjörn              1 *     110.00   =   110.00  \n");
-                receiptArea.append("Total                                        ------\n");
-                receiptArea.append("                                             306.00\n");
-                receiptArea.append("TACK FÖR DITT KÖP\n");
-            }
-        });
-
-        // Action listener for the "Pay" button to finalize the transaction and display the receipt
-        payButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                generateReceipt();  // Call the method to generate the receipt
-            }
-        });
+        initializeUI();
     }
 
-    /**
-     * This method generates a dynamic receipt based on the items in the cart.
-     * It displays the product name, quantity, price, total for each item,
-     * and the overall total of all items in the cart.
-     */
+    private void initializeUI() {
+        frame = new JFrame("Cash Register");
+        frame.setLayout(new BorderLayout());
+        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        frame.setSize(800, 500);
+
+        // Category panel for product buttons
+        categoryPanel = new JPanel(new GridLayout(10, 1));
+        frame.add(categoryPanel, BorderLayout.WEST);
+
+        // Item panel for quantity input
+        itemPanel = new JPanel(new GridLayout(0, 1));
+        quantityField = new JTextField(10); // Initialize the quantity field
+        itemPanel.add(new JLabel("Quantity:")); // Add a label for the quantity field
+        itemPanel.add(quantityField); // Add the quantity field to the panel
+        frame.add(itemPanel, BorderLayout.CENTER); // Add the item panel to the frame
+
+        // Receipt area
+        receiptArea = new JTextArea();
+        receiptArea.setEditable(false);
+        receiptArea.setBackground(Color.WHITE);
+        JScrollPane receiptScrollPane = new JScrollPane(receiptArea);
+        receiptScrollPane.getViewport().setPreferredSize(new Dimension(400, 400));
+        frame.add(receiptScrollPane, BorderLayout.EAST);
+
+        // Checkout button
+        checkoutButton = new JButton("Checkout");
+        checkoutButton.addActionListener(e -> checkout());
+        frame.add(checkoutButton, BorderLayout.SOUTH);
+
+        // Statistics button
+        statisticsButton = new JButton("Statistics");
+        statisticsButton.addActionListener(e -> showStatistics());
+        frame.add(statisticsButton, BorderLayout.NORTH);
+
+        // Add product buttons
+        addProductButtons();
+    }
+
+    private void addProductButtons() {
+        try {
+            List<Item> products = productDAO.getAllProducts();
+            for (Item product : products) {
+                JButton productButton = new JButton(product.getName() + " - " + product.getPrice());
+                productButton.addActionListener(e -> addProductToCart(product));
+                categoryPanel.add(productButton);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(frame, "Error fetching products: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private void addProductToCart(Item product) {
+        try {
+            int quantity = Integer.parseInt(quantityField.getText());
+            if (quantity <= 0) {
+                throw new IllegalArgumentException("Quantity must be greater than zero");
+            }
+
+            BigDecimal itemTotal = product.getPrice().multiply(BigDecimal.valueOf(quantity));
+            cartItems.add(new Item(product.getId(), product.getName(), product.getPrice(), product.getVatRate(), product.getCategory(), quantity, product.getBarcode()));
+            totalAmount = totalAmount.add(itemTotal);
+            totalVat = totalVat.add(itemTotal.multiply(product.getVatRate()));
+            generateReceipt();
+        } catch (NumberFormatException e) {
+            JOptionPane.showMessageDialog(frame, "Invalid quantity. Please enter a valid number.", "Error", JOptionPane.ERROR_MESSAGE);
+        } catch (IllegalArgumentException e) {
+            JOptionPane.showMessageDialog(frame, e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
     private void generateReceipt() {
-        double total = 0;
-
-        // Clear the receipt area before generating a new one
         receiptArea.setText("");
+        receiptArea.append(" STEFANS SUPERSHOP\n");
+        receiptArea.append("---\n");
 
-        // Header for the receipt
-        receiptArea.append("                     STEFANS SUPERSHOP\n");
-        receiptArea.append("----------------------------------------------------\n");
-        receiptArea.append("\n");
-
-        // Iterate over the cart items and generate a line for each in the receipt
         for (Item item : cartItems) {
-            double itemTotal = item.getPrice().doubleValue(); // Assuming 1 quantity for simplicity
-            total += itemTotal;
-            receiptArea.append(String.format("%-20s %4s * %-8.2f = %-8.2f\n",
-                    item.getName(), 1, item.getPrice(), itemTotal));
+            BigDecimal itemTotal = item.getPrice().multiply(BigDecimal.valueOf(item.getStockQuantity()));
+            receiptArea.append(String.format("%-20s %4d * %-8.2f = %-8.2f\n",
+                    item.getName(), item.getStockQuantity(), item.getPrice(), itemTotal));
         }
 
-        // Display the total amount on the receipt
-        receiptArea.append("----------------------------------------------------\n");
-        receiptArea.append(String.format("Total: %-8.2f\n", total));
+        receiptArea.append("---\n");
+        receiptArea.append(String.format("Subtotal: %-8.2f\n", totalAmount));
+        receiptArea.append(String.format("VAT: %-8.2f\n", totalVat));
+        receiptArea.append(String.format("Total: %-8.2f\n", totalAmount.add(totalVat)));
         receiptArea.append("TACK FÖR DITT KÖP\n");
-
-        // Clear the cart after payment is completed
-        cartItems.clear();
     }
 
-    /**
-     * This method runs the GUI application by creating a JFrame and displaying the panel1 content.
-     * It is invoked from the Event Dispatch Thread to ensure thread-safety for UI components.
-     */
+    private void checkout() {
+        if (cartItems.isEmpty()) {
+            JOptionPane.showMessageDialog(frame, "Cart is empty. Add items before checkout.", "Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        int orderId = orderDAO.createOrder(totalAmount.doubleValue(), totalVat.doubleValue());
+        if (orderId != -1) {
+            JOptionPane.showMessageDialog(frame, "Order created successfully with ID: " + orderId, "Success", JOptionPane.INFORMATION_MESSAGE);
+            cartItems.clear();
+            totalAmount = BigDecimal.ZERO;
+            totalVat = BigDecimal.ZERO;
+            generateReceipt();
+        } else {
+            JOptionPane.showMessageDialog(frame, "Error creating order", "Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private void showStatistics() {
+        // Placeholder for statistics functionality
+        JOptionPane.showMessageDialog(frame, "Statistics feature not implemented yet.", "Info", JOptionPane.INFORMATION_MESSAGE);
+    }
+
     public void run() {
-        // Run the UI inside the Event Dispatch Thread (EDT)
-        SwingUtilities.invokeLater(() -> {
-            JFrame frame = new JFrame("Cash Register");
-            frame.setContentPane(panel1); // Set the main panel content
-            frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-            frame.pack();
-            frame.setLocationRelativeTo(null);  // Center the frame on the screen
-            frame.setSize(1000, 800); // Set fixed size for the window
-            frame.setVisible(true); // Make the window visible
-        });
+        frame.setVisible(true);
     }
 
-    /**
-     * Method for custom component creation, if needed in the future.
-     * Currently unused but can be customized for further UI components.
-     */
-    private void createUIComponents() {
-        // Custom component creation logic if needed
+    public static void main(String[] args) {
+        new CashRegisterGUI().run();
     }
 }

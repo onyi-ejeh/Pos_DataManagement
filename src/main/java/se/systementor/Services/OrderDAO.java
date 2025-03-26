@@ -4,21 +4,24 @@ import se.systementor.DatabaseConnect.Database;
 
 import java.sql.*;
 
-/**
- * OrderDAO is a Data Access Object (DAO) class responsible for interacting with the database to perform
- * operations related to orders and order items, including creating orders and adding items to orders.
- *
- * It uses JDBC to connect to the database and execute SQL queries. The class also utilizes dependency
- * injection for the `Database` object to facilitate database connections.
- */
 public class OrderDAO {
     private final Database db;
 
     /**
-     * Constructor for the OrderDAO class. It initializes the Database object for connecting to the database.
+     * Default constructor for the OrderDAO class. It initializes the Database object for connecting to the database.
      */
     public OrderDAO() {
         this.db = new Database();
+    }
+
+    /**
+     * Constructor for the OrderDAO class that accepts a Database object.
+     * This allows for dependency injection of the Database object.
+     *
+     * @param database The Database object to be used for database connections.
+     */
+    public OrderDAO(Database database) {
+        this.db = database;  // Assign the passed Database object to the instance field
     }
 
     /**

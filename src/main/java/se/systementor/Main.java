@@ -41,9 +41,9 @@ public class Main {
      */
     private static void insertSampleItems() {
         // Create Item objects with the provided data
-        Item item1 = new Item("Milk", new BigDecimal("12.50"), new BigDecimal("12.00"), "Dairy", 50, "123456789012");
-        Item item2 = new Item("Bread", new BigDecimal("25.00"), new BigDecimal("12.00"), "Bakery", 30, "234567890123");
-        Item item3 = new Item("Laptop", new BigDecimal("9999.99"), new BigDecimal("25.00"), "Electronics", 5, "345678901234");
+        Item item1 = new Item(1, "Milk", new BigDecimal("12.50"), new BigDecimal("12.00"), "Dairy", 50, "123456789012");
+        Item item2 = new Item(2, "Bread", new BigDecimal("25.00"), new BigDecimal("12.00"), "Bakery", 30, "234567890123");
+        Item item3 = new Item(3, "Laptop", new BigDecimal("9999.99"), new BigDecimal("25.00"), "Electronics", 5, "345678901234");
 
         // Insert items into the database using Database class
         Database db = new Database();
@@ -64,11 +64,11 @@ public class Main {
      * VAT rate, and category.
      */
     private static void printCartItems() {
-        // Updated the Item constructor to use BigDecimal instead of double
+        // Create mock cart items
         Item[] cartItems = {
-                new Item("Milk", new BigDecimal("12.50"), new BigDecimal("12.00"), "Dairy", 0, "123456789012"),
-                new Item("Bread", new BigDecimal("25.00"), new BigDecimal("12.00"), "Bakery", 0, "234567890123"),
-                new Item("Laptop", new BigDecimal("9999.99"), new BigDecimal("25.00"), "Electronics", 0, "345678901234")
+                new Item(1, "Milk", new BigDecimal("12.50"), new BigDecimal("12.00"), "Dairy", 0, "123456789012"),
+                new Item(2, "Bread", new BigDecimal("25.00"), new BigDecimal("12.00"), "Bakery", 0, "234567890123"),
+                new Item(3, "Laptop", new BigDecimal("9999.99"), new BigDecimal("25.00"), "Electronics", 0, "345678901234")
         };
 
         System.out.println("Items in your cart:");

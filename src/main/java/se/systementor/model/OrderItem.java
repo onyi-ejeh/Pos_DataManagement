@@ -1,70 +1,46 @@
 package se.systementor.model;
 
-/**
- * The OrderItem class represents an item in an order, including details about
- * the associated order, product, quantity, and the subtotal price for that item.
- * Each OrderItem corresponds to a product within a customer's order.
- */
-public class OrderItem {
+import java.math.BigDecimal;
 
+public class OrderItem {
     private int orderId;
     private int productId;
+    private String productName;
     private int quantity;
-    private double subtotal;
+    private BigDecimal subtotal;
+    private BigDecimal vatRate; // Add this field
 
-    /**
-     * Constructor for creating an OrderItem with the specified order ID, product ID,
-     * quantity, and subtotal.
-     *
-     * @param orderId The ID of the order that this item is part of.
-     * @param productId The ID of the product being ordered.
-     * @param quantity The quantity of the product in the order.
-     * @param subtotal The subtotal price for the quantity of the product in the order.
-     */
-    public OrderItem(int orderId, int productId, int quantity, double subtotal) {
+    public OrderItem(int orderId, int productId, String productName, int quantity, BigDecimal subtotal, BigDecimal vatRate) {
         this.orderId = orderId;
         this.productId = productId;
+        this.productName = productName;
         this.quantity = quantity;
         this.subtotal = subtotal;
+        this.vatRate = vatRate; // Initialize the VAT rate
     }
 
     // Getters
-
-    /**
-     * Returns the ID of the order to which this item belongs.
-     *
-     * @return The order ID.
-     */
     public int getOrderId() {
         return orderId;
     }
 
-    /**
-     * Returns the ID of the product associated with this order item.
-     *
-     * @return The product ID.
-     */
     public int getProductId() {
         return productId;
     }
 
-    /**
-     * Returns the quantity of the product in this order item.
-     *
-     * @return The quantity of the product.
-     */
+    public String getProductName() {
+        return productName;
+    }
+
     public int getQuantity() {
         return quantity;
     }
 
-    /**
-     * Returns the subtotal price for this order item (quantity * price).
-     *
-     * @return The subtotal price.
-     */
-    public double getSubtotal() {
+    public BigDecimal getSubtotal() {
         return subtotal;
     }
 
-    // Setters could be added if necessary, e.g., to modify the order item details after creation.
+    public BigDecimal getVatRate() { // Add this method
+        return vatRate;
+    }
 }

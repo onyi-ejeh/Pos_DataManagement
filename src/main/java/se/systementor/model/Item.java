@@ -1,16 +1,14 @@
 package se.systementor.model;
 
 import java.math.BigDecimal;
+import java.util.Objects;
 
 /**
- * The Item class represents an item in the POS system, with various attributes such as name, price,
+ * The Item class represents an item in the POS system, with attributes such as name, price,
  * VAT rate, category, stock quantity, and barcode.
- * It provides constructors for creating new items or retrieving existing items (with an ID),
- * as well as methods for getting and setting the attributes of an item.
- * The class also overrides the `toString` method to provide a meaningful string representation of the item.
+ * It ensures proper validation and provides additional methods for business logic.
  */
 public class Item {
-
     private int id;
     private String name;
     private BigDecimal price;
@@ -20,152 +18,195 @@ public class Item {
     private String barcode;
 
     /**
-     * Constructs an Item object with an existing ID.
+     * Constructs an Item object with the specified attributes.
      *
-     * @param id The unique identifier of the item.
-     * @param name The name of the item.
-     * @param price The price of the item.
-     * @param vatRate The VAT rate of the item.
-     * @param category The category of the item.
-     * @param stockQuantity The stock quantity of the item.
-     * @param barcode The barcode of the item.
+     * @param id           The unique identifier of the item.
+     * @param name         The name of the item (cannot be null or empty).
+     * @param price        The price of the item (cannot be null or negative).
+     * @param vatRate      The VAT rate of the item (cannot be null or negative).
+     * @param category     The category of the item (cannot be null or empty).
+     * @param stockQuantity The stock quantity of the item (cannot be negative).
+     * @param barcode      The barcode of the item (cannot be null or empty).
+     * @throws IllegalArgumentException if any validation fails.
      */
     public Item(int id, String name, BigDecimal price, BigDecimal vatRate, String category, int stockQuantity, String barcode) {
         this.id = id;
-        this.name = name;
-        this.price = price;
-        this.vatRate = vatRate;
-        this.category = category;
-        this.stockQuantity = stockQuantity;
-        this.barcode = barcode;
+        this.name = validateName(name);
+        this.price = validatePrice(price);
+        this.vatRate = validateVatRate(vatRate);
+        this.category = validateCategory(category);
+        this.stockQuantity = validateStockQuantity(stockQuantity);
+        this.barcode = validateBarcode(barcode);
+    }
+
+    // Validation methods
+    private String validateName(String name) {
+        if (name == null || name.trim().isEmpty()) {
+            throw new IllegalArgumentException("Name cannot be null or empty");
+        }
+        return name.trim();
+    }
+
+    private BigDecimal validatePrice(BigDecimal price) {
+        if (price == null || price.compareTo(BigDecimal.ZERO) < 0) {
+            throw new IllegalArgumentException("Price cannot be null or negative");
+        }
+        return price;
+    }
+
+    private BigDecimal validateVatRate(BigDecimal vatRate) {
+        if (vatRate == null || vatRate.compareTo(BigDecimal.ZERO) < 0) {
+            throw new IllegalArgumentException("VAT rate cannot be null or negative");
+        }
+        return vatRate;
+    }
+
+    private String validateCategory(String category) {
+        if (category == null || category.trim().isEmpty()) {
+            throw new IllegalArgumentException("Category cannot be null or empty");
+        }
+        return category.trim();
+    }
+
+    private int validateStockQuantity(int stockQuantity) {
+        if (stockQuantity < 0) {
+            throw new IllegalArgumentException("Stock quantity cannot be negative");
+        }
+        return stockQuantity;
+    }
+
+    private String validateBarcode(String barcode) {
+        if (barcode == null || barcode.trim().isEmpty()) {
+            throw new IllegalArgumentException("Barcode cannot be null or empty");
+        }
+        return barcode.trim();
+    }
+
+    // Getters
+    public int getId() {
+        return id;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public BigDecimal getPrice() {
+        return price;
     }
 
     /**
-     * Constructs a new Item object without an ID (used for new items).
+     * Converts the price to a long value representing cents (e.g., 12.50 SEK becomes 1250).
      *
-     * @param name The name of the item.
-     * @param price The price of the item.
-     * @param vatRate The VAT rate of the item.
-     * @param category The category of the item.
-     * @param stockQuantity The stock quantity of the item.
-     * @param barcode The barcode of the item.
+     * @return The price in cents as a long value.
      */
-    public Item(String name, BigDecimal price, BigDecimal vatRate, String category, int stockQuantity, String barcode) {
-        this.name = name;
-        this.price = price;
-        this.vatRate = vatRate;
-        this.category = category;
-        this.stockQuantity = stockQuantity;
-        this.barcode = barcode;
+    public long getPriceAsLong() {
+        return price.multiply(BigDecimal.valueOf(100)).longValue();
+    }
+
+    public BigDecimal getVatRate() {
+        return vatRate;
     }
 
     /**
-     * Returns a string representation of the item, including its name, price, VAT rate, and category.
+     * Converts the VAT rate to a double value.
      *
-     * @return A string representation of the item.
+     * @return The VAT rate as a double.
      */
+    public double getVatRateAsDouble() {
+        return vatRate.doubleValue();
+    }
+
+    public String getCategory() {
+        return category;
+    }
+
+    public int getStockQuantity() {
+        return stockQuantity;
+    }
+
+    public String getBarcode() {
+        return barcode;
+    }
+
+    // Setters with validation
+    public void setName(String name) {
+        this.name = validateName(name);
+    }
+
+    public void setPrice(BigDecimal price) {
+        this.price = validatePrice(price);
+    }
+
+    public void setVatRate(BigDecimal vatRate) {
+        this.vatRate = validateVatRate(vatRate);
+    }
+
+    public void setCategory(String category) {
+        this.category = validateCategory(category);
+    }
+
+    public void setStockQuantity(int stockQuantity) {
+        this.stockQuantity = validateStockQuantity(stockQuantity);
+    }
+
+    public void setBarcode(String barcode) {
+        this.barcode = validateBarcode(barcode);
+    }
+
+    // Business logic methods
+    /**
+     * Calculates the total price including VAT.
+     *
+     * @return The price including VAT.
+     */
+    public BigDecimal getPriceWithVat() {
+        return price.add(price.multiply(vatRate));
+    }
+
+    /**
+     * Reduces the stock quantity by the specified amount.
+     *
+     * @param quantity The quantity to reduce.
+     * @throws IllegalArgumentException if the quantity is invalid (e.g., negative or greater than stock).
+     */
+    public void reduceStock(int quantity) {
+        if (quantity <= 0 || quantity > stockQuantity) {
+            throw new IllegalArgumentException("Invalid stock reduction amount");
+        }
+        this.stockQuantity -= quantity;
+    }
+
+    // toString, equals, and hashCode
     @Override
     public String toString() {
-        return "Item[name=" + name + ", price=" + price + ", vatRate=" + vatRate + ", category=" + category + "]";
+        return "Item{" +
+                "id=" + id +
+                ", name='" + name + '\'' +
+                ", price=" + price +
+                ", vatRate=" + vatRate +
+                ", category='" + category + '\'' +
+                ", stockQuantity=" + stockQuantity +
+                ", barcode='" + barcode + '\'' +
+                '}';
     }
 
-    // Getters and setters
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Item item = (Item) o;
+        return id == item.id &&
+                stockQuantity == item.stockQuantity &&
+                Objects.equals(name, item.name) &&
+                Objects.equals(price, item.price) &&
+                Objects.equals(vatRate, item.vatRate) &&
+                Objects.equals(category, item.category) &&
+                Objects.equals(barcode, item.barcode);
+    }
 
-    /**
-     * Returns the unique identifier of the item.
-     *
-     * @return The item's ID.
-     */
-    public int getId() { return id; }
-
-    /**
-     * Returns the name of the item.
-     *
-     * @return The name of the item.
-     */
-    public String getName() { return name; }
-
-    /**
-     * Returns the price of the item.
-     *
-     * @return The price of the item.
-     */
-    public BigDecimal getPrice() { return price; }
-
-    /**
-     * Returns the VAT rate of the item.
-     *
-     * @return The VAT rate of the item.
-     */
-    public BigDecimal getVatRate() { return vatRate; }
-
-    /**
-     * Returns the category of the item.
-     *
-     * @return The category of the item.
-     */
-    public String getCategory() { return category; }
-
-    /**
-     * Returns the stock quantity of the item.
-     *
-     * @return The stock quantity of the item.
-     */
-    public int getStockQuantity() { return stockQuantity; }
-
-    /**
-     * Returns the barcode of the item.
-     *
-     * @return The barcode of the item.
-     */
-    public String getBarcode() { return barcode; }
-
-    /**
-     * Sets the unique identifier of the item.
-     *
-     * @param id The unique identifier of the item.
-     */
-    public void setId(int id) { this.id = id; }
-
-    /**
-     * Sets the name of the item.
-     *
-     * @param name The name of the item.
-     */
-    public void setName(String name) { this.name = name; }
-
-    /**
-     * Sets the price of the item.
-     *
-     * @param price The price of the item.
-     */
-    public void setPrice(BigDecimal price) { this.price = price; }
-
-    /**
-     * Sets the VAT rate of the item.
-     *
-     * @param vatRate The VAT rate of the item.
-     */
-    public void setVatRate(BigDecimal vatRate) { this.vatRate = vatRate; }
-
-    /**
-     * Sets the category of the item.
-     *
-     * @param category The category of the item.
-     */
-    public void setCategory(String category) { this.category = category; }
-
-    /**
-     * Sets the stock quantity of the item.
-     *
-     * @param stockQuantity The stock quantity of the item.
-     */
-    public void setStockQuantity(int stockQuantity) { this.stockQuantity = stockQuantity; }
-
-    /**
-     * Sets the barcode of the item.
-     *
-     * @param barcode The barcode of the item.
-     */
-    public void setBarcode(String barcode) { this.barcode = barcode; }
+    @Override
+    public int hashCode() {
+        return Objects.hash(id, name, price, vatRate, category, stockQuantity, barcode);
+    }
 }

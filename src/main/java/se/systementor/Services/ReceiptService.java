@@ -2,8 +2,9 @@ package se.systementor.Services;
 
 import se.systementor.model.Order;
 import se.systementor.model.OrderItem;
-
+import java.math.BigDecimal;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * ReceiptService is a service class responsible for generating receipts for customer orders.
@@ -15,34 +16,43 @@ public class ReceiptService {
     /**
      * Generates a formatted receipt for a given order and its associated order items.
      *
-     * This method takes an {@link Order} object and a list of {@link OrderItem} objects and formats them into
-     * a readable string representing a receipt. It includes the receipt number, order date, item details (name,
-     * quantity, subtotal, and item total), and the total price of the order.
-     *
-     * @param order The {@link Order} object representing the order details, including receipt number and order time.
-     * @param orderItems A list of {@link OrderItem} objects representing the items in the order, including quantity and subtotal.
-     * @return A string representing the formatted receipt.
+     * @param order      The {@link Order} object representing the order details, including receipt number and order time.
+     * @param orderItems A list of {@link OrderItem} objects representing the items in the order.
+     * @return A formatted receipt as a string.
+     * @throws IllegalArgumentException if order or orderItems is null.
      */
     public static String generateReceipt(Order order, List<OrderItem> orderItems) {
+        // Validate input
+        Objects.requireNonNull(order, "Order cannot be null");
+        Objects.requireNonNull(orderItems, "Order items cannot be null");
+
         StringBuilder receipt = new StringBuilder();
 
+        // Header
         receipt.append("                     STEFANS SUPERSHOP\n");
         receipt.append("----------------------------------------------------\n");
-        receipt.append("Kvittonummer: " + order.getReceiptNumber() + "        Datum: " + order.getOrderTime() + "\n");
+        receipt.append(String.format("Kvittonummer: %-10s  Datum: %s\n", order.getReceiptNumber(), order.getOrderTime()));
         receipt.append("----------------------------------------------------\n");
 
-        double total = 0;
-
+        // Item details
+        BigDecimal subtotal = BigDecimal.ZERO;
+        BigDecimal totalVat = BigDecimal.ZERO;
         for (OrderItem item : orderItems) {
-            // Assuming you have access to the product data here (either fetch it or pass product name with OrderItem)
-            String productName = "Product Name";  // Placeholder, replace with actual product name from Item class
-            double itemTotal = item.getQuantity() * item.getSubtotal();
-            total += itemTotal;
-            receipt.append(String.format("%-25s %-3d *  %-10.2f =  %-10.2f\n", productName, item.getQuantity(), item.getSubtotal(), itemTotal));
+            BigDecimal itemTotal = item.getSubtotal().multiply(BigDecimal.valueOf(item.getQuantity()));
+            BigDecimal itemVat = itemTotal.multiply(item.getVatRate()).divide(BigDecimal.valueOf(100)); // Calculate VAT for the item
+            subtotal = subtotal.add(itemTotal);
+            totalVat = totalVat.add(itemVat);
+
+            receipt.append(String.format("%-25s %3d x %10.2f = %10.2f\n",
+                    item.getProductName(), item.getQuantity(), item.getSubtotal(), itemTotal));
         }
 
+        // Footer
+        BigDecimal total = subtotal.add(totalVat);
         receipt.append("----------------------------------------------------\n");
-        receipt.append("Total:                                       " + total + "\n");
+        receipt.append(String.format("Subtotal:                                  %10.2f\n", subtotal));
+        receipt.append(String.format("Moms:                                     %10.2f\n", totalVat));
+        receipt.append(String.format("Total:                                    %10.2f\n", total));
         receipt.append("TACK FÖR DITT KÖP\n");
 
         return receipt.toString();
